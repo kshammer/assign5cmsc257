@@ -3,6 +3,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
+
+void intHandler(int sig) {
+
+}
 
 
 
@@ -21,14 +26,14 @@ int main(int argc, char *argv[]) {
 	}
 	*/
 	char *prompt;
-	size_t len = 256;
+	size_t len = 50;
 	size_t i = 0;
-	if (!(prompt = malloc(256 * sizeof(char)))) {
+	if (!(prompt = malloc(50 * sizeof(char)))) {
 		return 1;
 	}
 	strcpy(prompt, "$");
 
-	if (argc == 3 && (strcmp(argv[1],"-p") !=0)) {
+	if (argc == 3 && (strcmp(argv[1],"-p") == 0)) {
 		prompt = argv[2];
 	}
 	else {
@@ -39,49 +44,84 @@ int main(int argc, char *argv[]) {
 
 	//infinite loop to get commands 
 	while (1) {
-		printf("[[%s]] ", prompt);
-		i = getline(&prompt, &len, stdin);
-		prompt[i - 1] = '\0';
-		fgets(command, 50, stdin);
-		//trim the string 
-		if (strcmp(command, cd) != 0) {
+		int pid;
+		char command[50];
+		char cwd[1024];
+		signal(SIGINT, intHandler);
+		printf("%s> ", prompt);
+		
+		if (!fgets(command, 50, stdin)) {
+			continue;
+		}
+		if (strlen(command) == 1) {
+			continue;
+		}
+		command[strlen(command) - 1] = '\0';
+
+		char* argv[20];
+		int p = 1;
+		argv[0] = strtok(command, " ");
+		while (argv[p] = strtok(NULL, " ")) {
+			p++;
+		}
+		argv[p] = '\0';
+		if (strcmp(argv[0],"cd") == 0) {
 			// do the cd stuff
 			//if(cd has extra follow the path)
+			if (argv[1] == NULL) {
+				if (getcwd(cwd, sizeof(cwd)) != NULL) {
+					printf("%s\n", cwd);
+				}
+			}
+			else {
+				
+				if (chdir(argv[1]) == 0) {
+					setenv("PWD", argv[1], 1);
+				}
+			}
 		}
-		if (strcmp(command, pid) != 0) {
-			// do the pid stuff
+		else if (strcmp(argv[0],"pid") == 0) {
+			//do pid stuff
+			printf("Procces id is: %d\n", getpid());
 		}
-		if (strcmp(command, ppid) != 0) {
+		else if (strcmp(argv[0],"ppid") == 0) {
 			//do the ppid stuff
+			printf("Parent id is: %d\n", getppid());
 		}
-		if (strcmp(command, exit) != 0) {
+		else if (strcmp(argv[0],"exit") == 0) {
 			//do the exit stuff
+			raise(SIGKILL);
 		}
 		//add a command to catch the ^C
 		else {
-			fflush();
+			fflush(0);
 			pid = fork();
 			//checks to see if fork worked
-			if (pid < 0) {
-				//	printf("fork failed at %d\n", c);
-				//closes the program 
+			if (pid == -1) {
+				printf("fork failed \n");
+			}
+			else if (pid == 0) {
+				//might not work takes an array and number
+				
+
+				if (execvp(argv[0], argv)) {
+					exit(1);
+				}
+				//close children
 				exit(0);
 			}
-			else if (pid > 0) {
-				//printf("parent: new child is %d\n", pid);
-			}
 			else {
-				//might not work takes an array and number
-				execvp(command);
+				int status;
+				wait(&status);
+				printf("Child exited with status: %d\n", status);
 			}
-			//close children
-			exit(0);
 		}
+		
+		
+		
 		//waits for children to close 
 		//printf("who waits");
-		while (wait(NULL) > 0) {
-			//printf("Waiting");
-		}
+		
 
 
 	}
