@@ -25,19 +25,14 @@ int main(int argc, char *argv[]) {
 		printf("\narg%d=%s", i, argv[i]);
 	}
 	*/
-	char *prompt;
-	size_t len = 50;
-	size_t i = 0;
-	if (!(prompt = malloc(50 * sizeof(char)))) {
-		return 1;
-	}
+	char prompt[50];
 	strcpy(prompt, "$");
 
 	if (argc == 3 && (strcmp(argv[1],"-p") == 0)) {
-		prompt = argv[2];
+		strcpy(prompt, argv[2]);
 	}
 	else {
-		prompt = "257sh";
+		strcpy(prompt, "257sh");
 	}
 
 	printf("\n");
